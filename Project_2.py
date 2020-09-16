@@ -14,7 +14,7 @@ import timeit
 class Optimazation_problem:
     
     def __init__( self , object_function, gradient = 0):  
-        self.object_function = copy(object_function)
+        self.object_function = object_function
         if not gradient:
             self.gradient = self.calculate_gradient()
 
@@ -23,6 +23,11 @@ class Optimazation_problem:
 
     def calculate_gradient(self):
         return
+
+    def print(self, x):   #just to illustrate how we pass functions as arguments to the init function
+        for i in x:
+            print(i, self.object_function(i))
+        
 
 class Abstract_Newton:
 
@@ -143,9 +148,13 @@ class Optimazation_methods2:
 
         
     
-        
-    
-    
+
+#just to illustrate how we pass functions as arguments to the init function
+def f(x):
+    return x*x
+op = Optimazation_problem(f)
+x = [1,2,3,4,5,6]
+op.print(x)
         
     
         
