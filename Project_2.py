@@ -6,36 +6,77 @@ Created on Sat Sep 12 17:20:59 2020
 @author: Mikael
 """
 from scipy import *
+from numpy import *
 from matplotlib.pyplot import *
 import timeit
 
 
 class Optimazation_problem:
     
-    
-    
-    def __init__( self , Gradient = 0 ):
-        
-        if not Gradient:
-            from import_function import * 
-            
-            self.Gradient_check = True
-            
+    def __init__( self , object_function, gradient = 0):  
+        self.object_function = copy(object_function)
+        if not gradient:
+            self.gradient = self.calculate_gradient()
+
         else:
-            from import_function import * 
-            
-            self.Gradient_check = False
+            self.gradient = copy(gradient)
+
+    def calculate_gradient(self):
+        return
+
+class Abstract_Newton:
+
+    def __init__(self, optimization_problem):
+        self.optimization_problem = copy(optimization_problem)
+
+
+    def optimize(self, x_guess): 
+        TOL = e-7
+        x = x_guess
+        f = self.optimization_problem.object_function
+        g = self.optimization_problem.gradient
+        g_x = g(x)
+        hessian = 1
+
+        while g_x < TOL:
+            s = self.compute_s(hessian, g_x, x)
+            alfa = self.compute_alfa()
+            x = self.compute_next_x()
+            hessian = self.compute_next_hessian()
+        return x
     
+    def compute_s(self, hessian, gradiant, x1): #This method is being handled by the classes children
+        pass
+
+    def compute_alfa(self): #This method is being handled by the classes children
+        pass
+
+    def line_search(self): #This method is being handled by the classes children
+        pass
+
+    def compute_next_x(self): #This method is being handled by the classes children
+        pass
+
+
+#In this class we can specify the different parts of how we do the optimization
+class Newton(Abstract_Newton):
+    def __init__(self, optimization_problem):
+        super(Newton, self).__init__(self, optimization_problem)
+
+    def compute_s(self, hessian, gradiant, x1): #Here is how we handle s calculation for this quasi newton method
+        return
+
+    def line_search(self): #Here is how we handle the line search for this quasi newton method
+        return
+
+    def compute_next_x(self):
+        return
+
+
+
+class Optimazation_methods2:
     
-    
-class Optimazation_methods:
-    
-    import Optimazation_problem
-    
-    
-    
-    
-    
+#    import Optimazation_problem
     def Newton( self , x_k , simplified = False , k_max = 100):
         
         ### INITIAL CONSTANTS/GUESS
@@ -128,9 +169,3 @@ class Optimazation_methods:
 
 
 
-
-
-
-start_time = time.time()
-
-print("--- %s seconds ---" % (time.time() - start_time))
