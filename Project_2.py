@@ -46,7 +46,8 @@ class Optimazation_methods:
         
         else:
             raise Exception( "Sorry The Hersian Is Not Positive Definite, Try Again" )
-            
+
+
     def Newton( self , Method_for_a , Method_for_H ):
     def __init__( self , object_function, gradient = 0):  
         self.object_function = object_function
@@ -86,7 +87,7 @@ class Abstract_Newton:
         return x
     
     def compute_s(self, hessian, gradiant, x1): #This method is being handled by the classes children
-        pass
+        return -1*dot(hessian,gradiant)
 
     def compute_alfa(self): #This method is being handled by the classes children
         pass
@@ -97,21 +98,26 @@ class Abstract_Newton:
     def compute_next_x(self): #This method is being handled by the classes children
         pass
 
+    def compute_next_hessian(self):
+        pass
+
 
 #In this class we can specify the different parts of how we do the optimization
-class Newton(Abstract_Newton):
+class Classical_Newton(Abstract_Newton):
     def __init__(self, optimization_problem):
         super(Newton, self).__init__(self, optimization_problem)
-
-    def compute_s(self, hessian, gradiant, x1): #Here is how we handle s calculation for this quasi newton method
-        return
 
     def line_search(self): #Here is how we handle the line search for this quasi newton method
         return
 
+    def compute_alfa(self):
+        return - 1
+
     def compute_next_x(self):
         return
 
+    def compute_next_hessian(self):
+        return
 
 
 class Optimazation_methods2:
