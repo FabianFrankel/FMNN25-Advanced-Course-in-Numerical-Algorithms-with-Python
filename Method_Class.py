@@ -25,6 +25,20 @@ class Optimazation_methods:
         self.optimisation_problem = optimisation_problem
         self.initial_x = initial_x
     
+    #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Sep 12 17:20:59 2020
+
+@author: Mikael
+"""
+from scipy import *
+from matplotlib.pyplot import *
+from numpy import *
+import timeit
+    
+class Optimazation_methods:
+    
     
     
     def Grad_F( self , X ):
@@ -36,7 +50,7 @@ class Optimazation_methods:
    
         for i in range(n):
             H[i] = h
-            grad_vector[i] = ( self.optimisation_problem.f( X + H ) - self.optimisation_problem.f( X ) ) /h
+            grad_vector[i] = ( self.F( X + H ) - self.F( X ) ) /h
             H[i] = 0
         
         return grad_vector
@@ -250,6 +264,20 @@ class Optimazation_methods:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+start_time = time.time()
+
+print("--- %s seconds ---" % (time.time() - start_time))
 
 def f(x):
     return x*x
