@@ -156,6 +156,60 @@ class Optimazation_methods:
         
         return grad_vector
     
+
+    def Update_Hersian( self , Method_for_h , H_k , x_k , x_km1 , grad_f_k , grad_f_km1  ):
+        
+        
+        Good_Broyden = [['Good Broyden']]  ##### Detta kan man säkert göra snyggare, men det var typ såhär jag tänkte
+        Bad_Broyden = [['Bad Broyden']]    #####
+        DFP = [['DFP']]                    #####
+        BFGS = [['BFGS']]                  #####
+        delta_k = x_k - x_km1
+        gamma_k = grad_f_k - grad_f_km1 
+        
+        if Method_for_h in Good_Broyden:
+            return self.Good_Broyden( H_k , delta_k , gamma_k )
+        elif Method_for_h in Bad_Broyden:
+            return self.Bad_Broyden( H_k , delta_k , gamma_k )
+        elif Method_for_h in DFP:
+            return self.DFP( H_k , delta_k , gamma_k )
+        elif Method_for_h in BFGS:
+            return self.BFGS( H_k , delta_k , gamma_k )
+        else:
+            raise Exception("You have not choosen appropriet method for alpha method . Use format: Method_for_H = ['Good Broyden'],['bad Broyden'], ['DFP'] or ['BFGS'] ")
+    
+    def Good_Broyden( self , H_k , delta_k , gamma_k ):     ##### Jag tror detta är Bad Broyden, men jag kan blandat ihop dem
+        
+        H_k_gamma_k = dot( H_k , gamma_k )
+        H_k_delta_k = dot( H_k , delta_k )
+        denumerator = inner(H_k_delta_k ,gamma_k)
+        
+        H_kp1 = H_k + outer( gamma_k - H_k_gamma_k , H_k_delta_k )/denumerator
+        
+        return H_kp1
+    
+    def Bad_Broyden( self , H_k , delta_k , gamma_k ): 
+        
+        H_kp1 = H_k + outer( ( delta_k - dot( H_k , gamma_k) )/inner( gamma_k , gamma_k )   , gamma_k )
+        
+        return H_kp1
+    
+    def DFP( self , H_k , delta_k , gamma_k ): 
+        
+        a_1 = outer( delta_k , delta_k )/inner( delta_k , delta_k )
+        a_2 = dot(H_k , dot( outer( gamma_k , gamma_k ), H_k)  ) / inner( gamma , dot( H_k , gamma_k ))
+        H_kp1 = H_k + a_1 - a_2 
+        
+        return H_kp1
+        
+    def BFGS( self , H_k , delta_k , gamma_k ): 
+       
+        a_1 = (1 + inner( gamma_k , dot( H_k , gamma_k )  ) / inner( delta_k , gamma_k ) ) * ( outer( gamma_k , gamma_k ) / inner( delta_k , gamma_k ) )
+        a_2 = ( dot( outer( delta_k , gamma_k ) , H_k ) + dot( H_k , outer( gamma_k , delta_k ) ) ) / inner( delta_k , gamma_k )
+        H_kp1 = H_k + a_1 - a_2
+        
+        return H_kp1
+    
     
         
     
