@@ -9,8 +9,21 @@ from scipy import *
 from matplotlib.pyplot import *
 from numpy import *
 import timeit
-    
+
+class Optimisation_problem:
+
+    def __init__(self, f):
+        self.f = f
+
+    def print_func(self, x):
+        for i in x:
+            print(i, self.object_function(i))
+
 class Optimazation_methods:
+
+    def __init__(self, optimisation_problem, initial_x):
+        self.optimisation_problem = optimisation_problem
+        self.initial_x = initial_x
     
     
     
@@ -23,7 +36,7 @@ class Optimazation_methods:
    
         for i in range(n):
             H[i] = h
-            grad_vector[i] = ( self.F( X + H ) - self.F( X ) ) /h
+            grad_vector[i] = ( self.optimisation_problem.f( X + H ) - self.optimisation_problem.f( X ) ) /h
             H[i] = 0
         
         return grad_vector
@@ -238,11 +251,13 @@ class Optimazation_methods:
 
 
 
+def f(x):
+    return x*x
 
 
-
-
-
+op = Optimisation_problem(f)
+l = [1,2,3,4,5,6,7]
+op.print_func(l)
 
 
 
