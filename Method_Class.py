@@ -7,9 +7,12 @@ Created on Sat Sep 12 17:20:59 2020
 """
 from scipy import *
 from matplotlib.pyplot import *
+from numpy import *
 import timeit
     
 class Optimazation_methods:
+    
+    
     
     def Grad_F( self , X ):
         
@@ -26,6 +29,7 @@ class Optimazation_methods:
         return grad_vector
     
     def Hersian( self , X ):
+        
         h = 1e-4
         n = X.shape[0]
         Hersian = zeros( (n,n) )
@@ -49,19 +53,27 @@ class Optimazation_methods:
     def Newton( self , Method_for_a , Method_for_H ):
         
         x_k = self.initial_x.copy()
+        helper = [1e-5]*(shape(x_k[0]))
+        Ghost_cell = array(helper)
+        x_km1 = x_k - Ghost_cell
+        grad_f_km1 = self.Grad_F(x_km1)
         grad_f_k = self.Grad_F(x_k)
         Her_f_k = self.Hersian(x_k)
         H_k = inv(Her_f_k)
         k = 0
         
-        while norm( self.Grad_F( x_k ) ) > 1e-7 and k <= 100:
+        while norm( self.Grad_F( x_k ) ) > 1e-7 and k < 100:
             
             k += 1
             s_k = - dot( H_k , grad_f_k ) 
             x_kp1 = x_k + self.alpha( Method_for_a , x_k , s_k ) * ( s_k )
+            
+            x_km1 = x_k.copy()
             x_k = x_kp1.copy()
+            H_k = self.Update_Hersian( Method_for_h ,  H_k , x_k , x_km1 , grad_f_k , grad_f_km1 )
             grad_f_k = self.Grad_F( x_k )
-            ####H_k = self.Update_Hersian( Method_for_h , x_k , H_k ,  )
+            grad_f_km1 = self.Grad_F( x_km1 )
+            
             
         if all( eigvals( H_k ) > 0 ) and k != 100:
             
@@ -69,7 +81,6 @@ class Optimazation_methods:
         else:
             raise Exception ("k = " ,k , " If k == 100 you did not converge, otherwise your hersian is not PD " )
             
-        
     def alpha( self , Method_for_a , x_k , s_k ):
         
         Classical = [['Classical']]  ##### Detta kan man säkert göra snyggare, men det var typ såhär jag tänkte
@@ -156,7 +167,6 @@ class Optimazation_methods:
         
         return grad_vector
     
-
     def Update_Hersian( self , Method_for_h , H_k , x_k , x_km1 , grad_f_k , grad_f_km1  ):
         
         
@@ -211,13 +221,9 @@ class Optimazation_methods:
         return H_kp1
     
     
-        
-    
-        
     
     
         
-    
         
         
 
