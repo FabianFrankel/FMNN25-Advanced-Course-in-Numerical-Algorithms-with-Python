@@ -5,7 +5,7 @@ import matplotlib.pylab as plt
 from scipy.linalg import block_diag
 from numpy.linalg import inv
 
-N = 3
+N = 4
 proccess = 1
 iterations = 20
 comm = MPI.COMM_WORLD
@@ -13,12 +13,17 @@ rank = comm.Get_rank()
 WINDOW = 5
 HEATER = 40
 NORMAL = 15
-u_0 = np.ones(6)*20
-u_1_right = np.ones(12)*20
-u_1_left = np.ones(12)*20
-u_2 = np.ones(6)*20
+u_0 = np.ones(N-1)*20 #behövs i center från left
+u_1_right = np.ones((N-1))*20 #behövs i right från center
+u_1_left = np.ones((N-1))*20  #behövs i left från center
+u_2 = np.ones(N-1)*20   #behövs i center från right
+u_left = np.ones((N*(N-1)))*20 #hela vänsterlösningen
+u_right = np.ones((N*(N-1)))*20 #hela högerlösningen
+
 
 #Run this file with cmd 'mpirun -np 3 python project3.py'
+
+
 def get_small_room_matrice_left(N):
     A = -4*np.diag(np.ones(N*(N-1)))  + np.diag(np.ones(N*(N-1)-1),-1) + np.diag(np.ones(N*(N-1)-1),1) + np.diag(np.ones(N*(N-2)),N) + np.diag(np.ones(N*(N-2)),-N)
     #block2 = np.diag(np.ones(N+2))
@@ -30,8 +35,8 @@ def get_small_room_matrice_left(N):
             A[i,i-1] = 1
             if(i-N > 0):
                 A[i,i-N] = 1
-    print('small room')
-    print(A, np.shape(A))
+    #print('small room')
+    #print(A, np.shape(A))
     return A
 
 def get_small_room_matrice_right(N):
@@ -46,21 +51,80 @@ def get_small_room_matrice_right(N):
                 A[i,i-1] = 1
             if(i-N >= 0):
                 A[i,i-N] = 1
-    print('small room')
-    print(A, np.shape(A))
+    #print('small room')
+    #print(A, np.shape(A))
     return A
 
 def get_big_room_matrice(N):
     dim = (N-1)*(N*2)
-    print(dim)
+    #print(dim)
     sub1_diag = np.ones(dim-1)
     for i in range(sub1_diag.size):
         if i % 2 == 1:
             sub1_diag[i] = 0
     A = np.diag(-4*np.ones(dim),0) + np.diag(np.ones(dim-2),2) + np.diag(np.ones(dim-2),-2) + np.diag(sub1_diag, 1) +np.diag(sub1_diag, -1)
-    print('big room')
-    print(A)
+    #print('big room')
+    #print(A)
     return A
+
+def buildRoom(u_left, u_center, u_right, u_1_left, u_1_right):
+
+    l = np.zeros((N-1, N))
+    r = np.zeros((N-1, N))
+
+    for i in range(N-1):
+        for j in range(N):
+            l[i,j] = u_left[i*(N-1)+j]
+            r[i,j] = u_right[i*(N-1)+j]
+
+
+    c = np.zeros((2*N, N-1))
+    for i in range(2*N):
+        for j in range(N-1):
+            c[i,j] = u_center[i*(N-1)+j]
+
+    
+
+    window = np.ones(N-1)*WINDOW
+    heater_v = np.ones(N-1)*HEATER
+    normal = np.ones(2*N+2)*NORMAL
+    normal = np.reshape(normal, ((2*N+2),1))
+
+    c = np.vstack((heater_v,c))
+    c = np.vstack((c,window))
+    normal[0] = HEATER
+    c = np.hstack((c,normal))
+    normal[-1] = WINDOW
+    c = np.hstack((normal,c))
+
+    for i in range(N-1):
+        c[-i-2,0] = u_1_left[i]
+        c[i+1,-1] = u_1_right[i]
+
+
+    window = np.ones(N)*WINDOW
+    heater_v = np.ones(N)*HEATER
+    heater_h = np.ones(N+1)*HEATER
+    heater_h = np.reshape(heater_h,(N+1,1))
+    normal = np.ones(N)*NORMAL
+
+    r = np.vstack((r,normal))
+    r = np.vstack((heater_v,r))
+    r = np.hstack((r, heater_h))
+    l = np.vstack((l,window))
+    l = np.vstack((normal,l))
+    l = np.hstack((heater_h,l))
+
+    empty_small = np.zeros((N+1,N+1))
+
+    r = np.vstack((r,empty_small))
+    l = np.vstack((empty_small,l))
+
+    Room = np.hstack((l,c))
+    Room = np.hstack((Room,r))
+
+
+    return Room
 
 if (rank > 2):
     sys.exit()
@@ -71,10 +135,15 @@ A_small_left = get_small_room_matrice_left(N)
 
 for i in range(iterations):
     if(rank == 1):
+        print('rank:',rank)
         if i != 0:
-            comm.Recv(u_0, source=0)
-            comm.Recv(u_2, source=2)
-        #b = np.array([u_0[3] -WINDOW, -NORMAL -WINDOW, u_0[5], -NORMAL, -NORMAL, -NORMAL, -NORMAL, -NORMAL, -NORMAL, -u_1[2], -NORMAL -HEATER, u_1[5]-HEATER])
+            print('hej1', i)
+            comm.Recv(u_0, source=0, tag=2)
+            comm.Recv(u_2, source=2, tag=22)
+            comm.Recv(u_left, source=0, tag=1)
+            comm.Recv(u_right, source=2, tag=21)
+        else:
+            print('hej0', i)
         
         b = np.zeros((N-1)*2*N)
         for i in range(N-1):
@@ -88,36 +157,45 @@ for i in range(iterations):
         b[1-N] = b[1-N] - NORMAL
         LeftBoundary = np.zeros(2*N)
         RightBoundary = np.zeros(2*N)
-        for i in range(2*N):
+        print(np.shape(u_0))
+        for i in range(1, 2*N-1):   #Changed
             if i < N:
-                LeftBoundary[i] = u_0[i]
-                RightBoundary[i] = NORMAL
-            else:
-                LeftBoundary[i] = NORMAL
-                RightBoundary[i] = u_2[i-N] #KANSKE
-        
+                LeftBoundary[i-1] = u_0[i-1]    #Changed
+                RightBoundary[i-1] = NORMAL #Changed
+            else:   
+                LeftBoundary[i-1] = NORMAL #Changed
+                RightBoundary[i-1] = u_2[i-N-1] #Changed
+        print('hej2')
         for i in range(1,2*N-3):
             b[i*(N-1)] = -LeftBoundary[i]
             b[(i+1)*(N-1)-1] = -RightBoundary[i]
-
-        u = np.linalg.solve(A_big,b)
-        u_1_left = np.zeros(N-1)
-        u_1_right = np.zeros(N-1)
-        for i,j in zip(range((N-1)*2*N), range(N-1)):
+        print('hej3')
+        u_center = np.linalg.solve(A_big,b)
+        u_1_left = []
+        u_1_right = []
+        for i in range((N-1)*2*N):
             if i < (N-1)*N:
-                if(i+1)%N:
-                    u_1_left[j] = u[i]
+                if(i+1)%N == 0:
+                    u_1_left.append(u_center[i])
             else:
-                if(i+1)%N:
-                    u_1_right[j] = u[i+N-1]
+                if(i)%N == 0:
+                    u_1_right.append(u_center[i+N-1])
+        print('hej4')
+        u_1_left = np.array(u_1_left)
+        u_1_right= np.array(u_1_right)
+        #print('u_1_left', u_1_right, u)
+        Room = buildRoom(u_left, u_center, u_right, u_1_left, u_1_right)
+        print('hej5')
+       
 
-        comm.Send(u_1_left,dest=0)
-        comm.Send(u_1_right,dest=2)
+        comm.Send(u_1_left ,dest=0,tag=3)
+        comm.Send(u_1_right ,dest=2, tag=4)
 
-    elif(rank == 0):
-        comm.Recv(u_1_left, source=1)
+    elif(rank == 0): #SMALL LEFT
+        print('rank:',rank)
+        comm.Recv(u_1_left, source=1, tag=3)
         b = np.zeros((N-1)*(N-1)+N-1)
-
+        #u_old = u_left
         for i in range(N-1):
             b[i] = -WINDOW
             b[-1-i] = -NORMAL
@@ -129,24 +207,29 @@ for i in range(iterations):
         RightBoundary = np.zeros(N)
 
         for i in range(N-3):
-                LeftBoundary[i] = HEATER
+            LeftBoundary[i] = HEATER
         
-        for i in range(N):
-            RightBoundary[i] = u_1_left[i]
+        for i in range(N-1):            #Changed
+            RightBoundary[i] = u_1_left[i] 
 
         for i in range(1,N-3):
             b[i*(N)] = -LeftBoundary[i]
             b[(i+1)*(N)-1] = b[(i+1)*(N)-1]-RightBoundary[i-1]
-        u = np.linalg.solve(A_small_left,b)
-        u_0 = np.zeros(N-1)
-        for i,j in zip(range((N-1)*(N-1)+N-1),range(N-1)):
+        u_left = np.linalg.solve(A_small_left,b)
+        u_0 = []
+        for i in range((N-1)*(N-1)+N-1):
             if((i+1)%N == 0):
-                u_0[j] = u[i]
-        comm.Send(u_0, dest=1)
+                u_0.append(u_left[i])
+        u_0 = np.array(u_0)
+
+        comm.Send(u_left, dest=1, tag=1)
+        comm.Send(u_0, dest=1, tag=2)
+
 
         
-    elif rank == 2:
-        comm.Recv(u_1_right, source=1)
+    elif rank == 2: #RIGHT SMALL
+        print('rank:',rank)
+        comm.Recv(u_1_right, source=1, tag=4)
         b = np.zeros((N-1)*(N-1)+N-1)
 
         for i in range(N-1):
@@ -163,32 +246,40 @@ for i in range(iterations):
         for i in range(N-3):
                 RightBoundary[i] = HEATER
         
-        for i in range(N):
+        for i in range(N-1):        #Changed
                 LeftBoundary[i] = u_1_right[i]
 
         for i in range(1,N-3):
             b[i*(N)] = -LeftBoundary[i]
             b[(i+1)*(N)-1] = b[(i+1)*(N)-1]-RightBoundary[i-1]
-        u = np.linalg.solve(A_small_right,b)
+        u_right = np.linalg.solve(A_small_right,b)
         u_2 = []
-        for i,j in zip(range((N-1)*(N-1)+N-1),range(N-1)):
-            if((i+1)%N == 0):
-                u_2[j] = u[i]
-        comm.Send(u_2,dest=1)
+        for i in range((N-1)*(N-1)+N-1):
+            if((i)%N == 0):
+                u_2.append(u_right[i])
+        u_2 = np.array(u_2)
+        #print(u, u_2)
+        comm.Send(u_right, dest=1, tag=21)
+        comm.Send(u_2,dest=1, tag=22)
+
+
 
 if rank == 1:
-    comm.Recv(u_0, source=0)
-    comm.Recv(u_2, source=2)
-    smallRoom_1 = np.zeros([N+1,N+1])
-    smallRoom_2 = np.zeros([N+1,N+1])
-    print('u_0',u_0)
-    print('u_1_left',u_1_left)
-    print('u_1_right',u_1_right)
-    print('u_2',u_2)
+    comm.Recv(u_left, source=0)
+    comm.Recv(u_right, source=2)
+    
+    plt.figure()
+    plt.imshow(Room, cmap='coolwarm')
+    plt.colorbar()
+    plt.show()
+
+
+    
 elif rank == 2:
-    comm.Send(u_2, dest=1)
+    comm.Send(u_right, dest=1)
+
 elif rank == 0:
-    comm.Send(u_0, dest=1)
+    comm.Send(u_left, dest=1)
 
 
 
